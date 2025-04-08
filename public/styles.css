@@ -1,0 +1,82 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  button {
+    padding: 8px 16px;
+    margin: 0 10px 10px 0;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #bd0162;
+    color: white;
+    transition: background-color 0.2s;
+  }
+  
+  button:hover {
+    background-color:  #34001b;;
+  }
+  
+  .auth {
+    border: 2px solid #ffffff;
+    background-color:#b3e8ff;
+    color:#003b5d;
+    border-radius: 4px;
+    margin: 20%;
+    display: flex;
+    justify-content: center;  
+    align-items: center;                
+    flex-direction: column; 
+  }
+  input[type="text"],
+  input[type="password"] {
+    padding: 8px;
+    margin: 0 10px 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  #data-container {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 5px;
+  }
+  
+  .hidden {
+    display: none;
+  }
+  
+  #error-message {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #ffcccc;
+    color: #a00;
+    border: 1px solid #a00;
+    border-radius: 4px;
+  }
+
+  /* Светлая тема */
+  body[data-theme="light"] {
+    background: #5aceff;
+    color: #333;
+  }
+  
+  body[data-theme="light"] #data-container {
+    background: #c5eeff;
+    border: 1px solid #ddd;
+  }
+  
+  /* Тёмная тема */
+  body[data-theme="dark"] {
+    background: #122b36;
+    color: #fff;
+  }
+  
+  body[data-theme="dark"] #data-container {
+    background: #405c69;
+    border: 1px solid #444;
+  }
+  

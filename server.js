@@ -1,71 +1,130 @@
-// Создаем базовый сервер
 const express = require('express');
-const bodyParser = require('body-parser');
-const jwt = require('jsonwebtoken'); //библиотека для создания и проверки JWT-токенов
-const cors = require('cors'); // middleware для разрешения кросс-доменных запросов 
-const dotenv = require('dotenv'); // позволяет использовать .env файл для хранения конфиденциальных данных, например, секретов
-
-dotenv.config();
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const fs = require('fs');
+const path = require('path');
 const app = express();
-const PORT = 3000;
-app.use(bodyParser.json());
-app.use(cors());
 
-let users = []; // "База данных" пользователей
+// Мидлвары
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(express.static('public'));
 
-app.listen(PORT, () => {
- console.log(`Server is running on port ${PORT}`);
+// Конфигурация сессии
+app.use(session({
+  secret: 'your_secret_key_here',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // Для разработки на localhost
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 часа
+  }
+}));
+
+// Папка для кэшированных данных
+const cacheDir = path.join(__dirname, 'cache');
+if (!fs.existsSync(cacheDir)) {
+  fs.mkdirSync(cacheDir);
+}
+
+// Функция для кэширования данных (например, файловый кэш)
+function getCachedData(key, ttlSeconds = 30) {
+  const cacheFile = path.join(cacheDir, `${key}.json`);
+  if (fs.existsSync(cacheFile)) {
+    const stats = fs.statSync(cacheFile);
+    const now = new Date().getTime();
+    const fileAge = (now - stats.mtimeMs) / 1000;
+    if (fileAge < ttlSeconds) {
+      const cachedData = fs.readFileSync(cacheFile, 'utf-8');
+      return JSON.parse(cachedData);
+    }
+  }
+  const newData = {
+    items: [1, 2, 3],  // Пример данных
+    timestamp: Date.now(),
+    source: 'Файловый кэш',
+  };
+  fs.writeFileSync(cacheFile, JSON.stringify(newData));
+  setTimeout(() => {
+    if (fs.existsSync(cacheFile)) {
+      fs.unlinkSync(cacheFile);
+    }
+  }, ttlSeconds * 1000);
+  return newData;
+}
+
+// Маршрут для получения данных
+app.get('/api/data', (req, res) => {
+  const data = getCachedData('api_data');
+  res.json(data);
 });
 
-//Регистрация пользователя
-//(Принимает username и password.
-//сохраняет пользователя в массиве users)
-app.post('/register', (req, res) => {
-    const { username, password } = req.body;
-    if (users.find(u => u.username === username)) {
-    return res.status(400).json({ message: 'Такой пользователь уже есть' });
-    }
-    const newUser = { id: users.length + 1, username, password };
-    users.push(newUser); //добавляем в бд(массив)
-    res.status(201).json({ message: 'Успешная регистрация' });
-   });
+// Маршрут для логина
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === 'admin' && password === '12345') {
+    req.session.user = { username };
+    return res.json({ success: true });
+  }
+  res.status(401).json({ success: false });
+});
 
-   //Аутентификация пользователя (Принимает username и password.
-   // Проверяет наличие пользователя в массиве users.
-    //Генерирует JWT токен, если данные верны.)
-   app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    const user = users.find(u => u.username === username && u.password ===
-   password); 
-    if (user) {
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-   expiresIn: '1h' }); 
-    res.json({ token });
-    } else {
-    res.status(401).json({ message: 'Авторизация провалена' });
-    }
-   });
+// Проверка авторизации
+app.get('/check-auth', (req, res) => {
+  if (req.session.user) {
+    return res.json({ authenticated: true, user: req.session.user });
+  }
+  res.json({ authenticated: false });
+});
 
-   //Защищенный маршрут (Проверяет JWT токен, Возвращает данные, если токен валиден.)
-   const authenticateJWT = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-    const token = authHeader.split(' ')[1];
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+// Логаут
+app.post('/logout', (req, res) => {
+  req.session.destroy(err => {
     if (err) {
-    return res.sendStatus(403);
+      return res.status(500).send('Ошибка выхода');
     }
-    req.user = user;
-    next();
-    });
-    } else {
-    res.sendStatus(401);
-    }
-   };
-   app.get('/protected', authenticateJWT, (req, res) => {
-    res.json({ message: 'This is a protected route', user: req.user });
-   });
+    res.clearCookie('connect.sid');
+    res.json({ success: true });
+  });
+});
 
-   
+// Маршрут для смены темы (сохранение в куки)
+app.post('/theme', (req, res) => {
+  const { theme } = req.body;
+  res.cookie('theme', theme, {
+    maxAge: 86400000, // 1 день
+    httpOnly: true,
+    sameSite: 'strict',
+  });
+  res.sendStatus(200);
+});
 
-   
+// Запуск сервера
+app.listen(3000, () => {
+  console.log('Сервер запущен на http://localhost:3000');
+  console.log('Для теста используйте:');
+  console.log('Логин: admin');
+  console.log('Пароль: 12345');
+});
+
+// Логирование запросов
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+  next();
+});
+
+// Пример кеширования статики
+app.use((req, res, next) => {
+  if (req.url.endsWith('.js') || req.url.endsWith('.css')) {
+    res.set('Cache-Control', 'public, max-age=86400');
+  }
+  next();
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Необработанная ошибка:', err);
+});
+
+  

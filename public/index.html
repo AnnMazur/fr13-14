@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Кэширование</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body data-theme="light">
+  <div id="auth-section" class="auth">
+    <h2>Вход</h2>
+    <input type="text" id="username" placeholder="Имя пользователя">
+    <input type="password" id="password" placeholder="Пароль">
+    <button id="login-btn">Войти</button>
+  </div>
+
+  <div id="profile-section" class="hidden">
+    <h2>Профиль</h2>
+    <p>Вы вошли как: <strong id="username-display"></strong></p>
+    <div class="controls">
+      <button id="toggle-theme">Сменить тему</button>
+      <button id="refresh-data">Обновить данные</button>
+      <button id="logout-btn">Выйти</button>
+    </div>
+    <div id="data-container"></div>
+    <div id="error-message" class="hidden"></div>
+  </div>
+
+ 
+
+  <script src="/script.js"></script>
+</body>
+</html>
